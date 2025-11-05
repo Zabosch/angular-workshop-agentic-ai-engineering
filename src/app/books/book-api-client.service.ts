@@ -19,4 +19,9 @@ export class BookApiClient {
 
     return this.http.get<Book[]>(this.apiUrl, { params });
   }
+
+  getBook(id: string): Observable<Book> {
+    // GET /books/:id
+    return this.http.get<Book>(`${this.apiUrl}/${id}`);
+  }
 }
