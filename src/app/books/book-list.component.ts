@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Book } from './book';
 import { BookApiClient } from './book-api-client.service';
 import { BookItemComponent } from './book-item.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime, distinctUntilChanged, finalize, switchMap, tap } from 'rxjs';
 
 @Component({
   selector: 'app-book-list',
-  standalone: true,
   imports: [CommonModule, FormsModule, BookItemComponent],
   template: `
     <div class="container mx-auto px-4 py-12 max-w-7xl">
@@ -29,7 +30,7 @@ import { BookItemComponent } from './book-item.component';
           </button>
         </div>
       </div>
-
+<!-- remove *ngif and replace with @if syntax -->
       <div *ngIf="loading" class="flex justify-center items-center py-20">
         <div class="animate-pulse flex flex-col items-center">
           <div
@@ -38,9 +39,9 @@ import { BookItemComponent } from './book-item.component';
           <p class="mt-4 text-gray-600">Loading books...</p>
         </div>
       </div>
-
+<!-- remofe *ngIf and use @empty -->
       <div *ngIf="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-        <app-book-item *ngFor="let book of books; trackBy: trackById" [book]="book"></app-book-item>
+        <app-book-item *ngFor="let book of books(); trackBy: trackById" [book]="book"></app-book-item>
 
         <div
           *ngIf="books.length === 0"
@@ -61,10 +62,10 @@ import { BookItemComponent } from './book-item.component';
             />
           </svg>
           <p class="text-xl font-medium text-gray-600 mb-2">
-            {{ searchTerm ? 'No books match your search' : 'No books available' }}
+            {{ searchTerm() ? 'No books match your search' : 'No books available' }}
           </p>
           <p class="text-gray-500">
-            {{ searchTerm ? 'Try different search terms or clear the search' : 'Check back later' }}
+            {{ searchTerm() ? 'Try different search terms or clear the search' : 'Check back later' }}
           </p>
           <button
             *ngIf="searchTerm"
@@ -78,46 +79,63 @@ import { BookItemComponent } from './book-item.component';
     </div>
   `
 })
-export class BookListComponent implements OnInit {
-  @Input() pageSize: number = 10;
-  books: Book[] = [];
-  loading: boolean = true;
-  searchTerm: string = '';
+export class BookListComponent {
+  private bookApiClient = inject(BookApiClient);
+  
+  pageSize = input<number>(10);
+  books = signal<Book[]>([]);
+  loading = signal(true);
+  searchTerm = signal('');
   searchTimeout: any;
+  
+  searchTerm$ = signal('');
+  
+  filteredBooks = computed(() => {
+    const term = this.searchTerm().toLowerCase();
+    return this.books().filter(book => 
+      book.title.toLowerCase().includes(term) || 
+      book.abstract.toLowerCase().includes(term)
+    );
+  });
 
-  constructor(private bookApiClient: BookApiClient) {}
-
-  ngOnInit(): void {
-    this.loadBooks();
+  constructor() {
+    // Load initial books
+    effect(() => {
+      this.loadBooks(this.searchTerm());
+    });
   }
 
   private loadBooks(search?: string): void {
-    this.loading = true;
-    this.bookApiClient.getBooks(this.pageSize, search).subscribe({
+    this.loading.set(true);
+    // you must unsubscribe from observables to avoid memory leaks 
+    // use tap instead of logic in subscribe({})
+    this.bookApiClient.getBooks(this.pageSize(), search).subscribe({
       next: books => {
-        this.books = books;
-        this.loading = false;
+        this.books.set(books);
+        this.loading.set(false);
       },
       error: error => {
         console.error('Error fetching books:', error);
-        this.loading = false;
+        this.loading.set(false);
       }
     });
   }
 
   onSearchChange(): void {
     // Debounce search to avoid too many API calls while typing
-    clearTimeout(this.searchTimeout);
-    this.searchTimeout = setTimeout(() => {
-      this.loadBooks(this.searchTerm);
-    }, 300);
+    // prefer debounceTime and a stream instead  of using setTimeout
+    clearTimeout(this.searchTimeout());
+    this.searchTimeout.set( setTimeout(() => {
+      this.loadBooks(this.searchTerm());
+    }, 300));
   }
 
   clearSearch(): void {
-    this.searchTerm = '';
+    this.searchTerm.set('');
     this.loadBooks();
   }
 
+  // remove trackBy and use for in 
   trackById(index: number, book: Book): string {
     return book.id;
   }
