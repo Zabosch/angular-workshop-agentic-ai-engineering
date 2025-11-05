@@ -31,7 +31,7 @@ import { debounceTime, distinctUntilChanged, finalize, switchMap, tap } from 'rx
         </div>
       </div>
 <!-- remove *ngif and replace with @if syntax -->
-      <div *ngIf="loading" class="flex justify-center items-center py-20">
+      <div *ngIf="loading()" class="flex justify-center items-center py-20">
         <div class="animate-pulse flex flex-col items-center">
           <div
             class="h-16 w-16 rounded-full border-4 border-t-blue-700 border-r-blue-700 border-b-gray-200 border-l-gray-200 animate-spin"
@@ -39,12 +39,12 @@ import { debounceTime, distinctUntilChanged, finalize, switchMap, tap } from 'rx
           <p class="mt-4 text-gray-600">Loading books...</p>
         </div>
       </div>
-<!-- remofe *ngIf and use @empty -->
-      <div *ngIf="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+<!-- remove *ngIf and use @empty -->
+      <div *ngIf="!loading()" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8">
         <app-book-item *ngFor="let book of books(); trackBy: trackById" [book]="book"></app-book-item>
 
         <div
-          *ngIf="books.length === 0"
+          *ngIf="books().length === 0"
           class="col-span-full flex flex-col items-center justify-center py-16 text-center bg-gray-50 rounded-xl"
         >
           <svg
@@ -68,7 +68,7 @@ import { debounceTime, distinctUntilChanged, finalize, switchMap, tap } from 'rx
             {{ searchTerm() ? 'Try different search terms or clear the search' : 'Check back later' }}
           </p>
           <button
-            *ngIf="searchTerm"
+            *ngIf="searchTerm()"
             (click)="clearSearch()"
             class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200"
           >
