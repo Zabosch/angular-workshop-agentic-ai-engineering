@@ -24,4 +24,9 @@ export class BookApiClient {
     // GET /books/:id
     return this.http.get<Book>(`${this.apiUrl}/${id}`);
   }
+
+  updateBook(id: string, book: Partial<Book>): Observable<Book> {
+    // Use PUT for full update. If your API expects PATCH, change to http.patch.
+    return this.http.put<Book>(`${this.apiUrl}/${id}`, book);
+  }
 }

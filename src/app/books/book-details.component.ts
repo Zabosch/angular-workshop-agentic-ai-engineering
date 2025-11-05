@@ -10,7 +10,12 @@ import { BookApiClient } from './book-api-client.service';
   imports: [CommonModule, RouterModule],
   template: `
     <div class="container mx-auto px-4 py-12 max-w-4xl">
-      <a routerLink="/" class="text-sm text-blue-600 hover:underline">← Back to list</a>
+      <div class="flex items-center justify-between">
+        <a routerLink="/" class="text-sm text-blue-600 hover:underline">← Back to list</a>
+        <div>
+          <a *ngIf="book" [routerLink]="['/books', book.id, 'edit']" class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Edit</a>
+        </div>
+      </div>
 
       <div *ngIf="loading" class="flex justify-center items-center py-20">
         <div class="animate-pulse flex flex-col items-center">
